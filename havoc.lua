@@ -340,7 +340,7 @@ local function enableTracers()
                             local line = Instance.new("Frame", tracerSg)
                             line.AnchorPoint = Vector2.new(0, 0.5)
                             line.Size = UDim2.new(0, len, 0, TRACER_THICKNESS)
-                            line.Position = UDim2.new(0, sx+dx/2-len/2, 0, sy+dy/2)
+                            line.Position = UDim2.new(0, sx, 0, sy)
                             line.Rotation = ang
                             line.BackgroundColor3 = C.ACCENT
                             line.BackgroundTransparency = 0.3
@@ -436,8 +436,8 @@ end
 local function enableRejoinOnKick()
     rejoinOnKick = true
     if kickConn then kickConn:Disconnect() end
-    kickConn = LocalPlayer.Kicked:Connect(function()
-        if rejoinOnKick then
+    kickConn = LocalPlayer.AncestryChanged:Connect(function(_, parent)
+        if not parent and rejoinOnKick then
             task.wait(1)
             pcall(function()
                 game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
@@ -599,7 +599,7 @@ local function makeSlider(parent, label, subLabel, minVal, maxVal, defaultVal, o
     corner(trackBg,2)
     local pct = (defaultVal - minVal) / (maxVal - minVal)
     local fill = frm({Size=UDim2.new(pct,0,1,0), BackgroundColor3=C.ACCENT, ZIndex=8}, trackBg); corner(fill,2)
-    local handle = frm({Size=UDim2.new(0,12,0,12), Position=UDim2.new(pct,0,0.5,-6),
+    local handle = frm({Size=UDim2.new(0,12,0,12), AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.new(pct,0,0.5,0),
         BackgroundColor3=C.WHITE, ZIndex=9}, trackBg); corner(handle,6)
     local draggingSlider = false
     handle.InputBegan:Connect(function(i)
@@ -614,7 +614,7 @@ local function makeSlider(parent, label, subLabel, minVal, maxVal, defaultVal, o
             local newPct = math.clamp(relX / trackBg.AbsoluteSize.X, 0, 1)
             local newVal = math.floor(minVal + newPct*(maxVal-minVal))
             fill.Size            = UDim2.new(newPct, 0, 1, 0)
-            handle.Position      = UDim2.new(newPct, 0, 0.5, -6)
+            handle.Position      = UDim2.new(newPct, 0, 0.5, 0)
             valLbl.Text          = tostring(newVal)
             if onChange then onChange(newVal) end
         end
@@ -651,10 +651,13 @@ corner(ambientGlow, 250)
 -- ══════════════════════════════════════════
 --  MAIN WINDOW
 -- ══════════════════════════════════════════
-local win = frm({
-    Size=UDim2.new(0,920,0,560), Position=UDim2.new(0.5,-460,0.5,-280),
-    BackgroundColor3=C.BG, ClipsDescendants=true, ZIndex=1,
-}, sg)
+local win = Instance.new("CanvasGroup")
+win.Size = UDim2.new(0, 920, 0, 560)
+win.Position = UDim2.new(0.5, -460, 0.5, -280)
+win.BackgroundColor3 = C.BG
+win.BorderSizePixel = 0
+win.ZIndex = 1
+win.Parent = sg
 corner(win,14); stroke(win,C.BORDER2,1)
 frm({Size=UDim2.new(1,0,0,60), BackgroundColor3=C.ACCENT, BackgroundTransparency=0.95, ZIndex=2}, win)
 
@@ -821,7 +824,7 @@ local tickerBar = frm({Size=UDim2.new(1,0,0,20), Position=UDim2.new(0,0,0,44),
     BackgroundColor3=C.SURFACE, ZIndex=4}, mainArea)
 frm({Size=UDim2.new(1,0,0,1), BackgroundColor3=C.BORDER, ZIndex=4}, tickerBar)
 frm({Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,1,-1), BackgroundColor3=C.BORDER, ZIndex=4}, tickerBar)
-local TICKER = "  HAVOC v2.2  //  AIMBOT BUILD  ▸  Speed · Fly · Noclip · Invis · Aimbot · ESP · Chams · Tracers · FOV · AntiVoid · AntiKB  ▸  "
+local TICKER = "  HAVOC v2.4  //  AIMBOT BUILD  ▸  Speed · Fly · Noclip · Invis · Aimbot · ESP · Chams · Tracers · FOV · AntiVoid · AntiKB  ▸  "
 local tickerLbl = lbl({Size=UDim2.new(0,2000,1,0), Position=UDim2.new(0,700,0,0),
     Text=TICKER..TICKER, TextColor3=C.SUBTEXT, TextSize=9,
     Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=5}, tickerBar)
@@ -961,7 +964,7 @@ local function buildHomeTab()
     local feedScroll=scroll(feedCard,UDim2.new(1,0,1,-34),UDim2.new(0,0,0,34))
     local feedInner=frm({Size=UDim2.new(1,0,0,0),BackgroundTransparency=1,AutomaticSize=Enum.AutomaticSize.Y,ZIndex=5},feedScroll); listLayout(feedInner,0)
     local FEED={
-        {name="robloxguycoolestman",action="Loaded",    detail="Havoc v2.1",    role="OWNER", roleColor=C.ACCENT,avatarCol=C.ACCENTDIM,            time="just now"},
+        {name="robloxguycoolestman",action="Loaded",    detail="Havoc v2.4",    role="OWNER", roleColor=C.ACCENT,avatarCol=C.ACCENTDIM,            time="just now"},
         {name="MelodyCrafter3",     action="Whitelist", detail="authorized",    role="MEMBER",roleColor=C.CYAN,  avatarCol=Color3.fromRGB(0,30,36),time="2m ago"},
         {name="itsdemix_3",         action="Whitelist", detail="authorized",    role="MEMBER",roleColor=C.CYAN,  avatarCol=Color3.fromRGB(0,30,36),time="5m ago"},
         {name="lil_mineturtle",     action="Role:",     detail="Admin assigned",role="ADMIN", roleColor=C.ACCENT,avatarCol=C.ACCENTDIM,            time="1h ago"},
@@ -1013,7 +1016,7 @@ local function buildHomeTab()
     end
     local sysCard=bottomCard(0.333,1,"System Status")
     local sysInner=frm({Size=UDim2.new(1,-16,0,0),Position=UDim2.new(0,8,0,38),BackgroundTransparency=1,AutomaticSize=Enum.AutomaticSize.Y,ZIndex=5},sysCard); listLayout(sysInner,2)
-    for _,item in ipairs({{name="Whitelist Save",val="ONLINE",ok=true},{name="Nametag System",val="LOADED",ok=true},{name="ScriptBlox API",val="REACHABLE",ok=true},{name="Owner Auth",val="VERIFIED",ok=true},{name="UI Version",val="v2.1",ok=true}}) do
+    for _,item in ipairs({{name="Whitelist Save",val="ONLINE",ok=true},{name="Nametag System",val="LOADED",ok=true},{name="ScriptBlox API",val="REACHABLE",ok=true},{name="Owner Auth",val="VERIFIED",ok=true},{name="UI Version",val="v2.4",ok=true}}) do
         local row=frm({Size=UDim2.new(1,0,0,22),BackgroundTransparency=1,ZIndex=6},sysInner)
         local ind=frm({Size=UDim2.new(0,6,0,6),Position=UDim2.new(0,0,0.5,-3),BackgroundColor3=item.ok and C.GREEN or C.YELLOW,ZIndex=7},row); corner(ind,3)
         task.spawn(function() while sysCard.Parent do tw(ind,{BackgroundTransparency=0.4},0.8); task.wait(0.9); tw(ind,{BackgroundTransparency=0},0.8); task.wait(0.9) end end)
@@ -1351,7 +1354,39 @@ local function buildVisualTab()
     makeToggle(vsToggles,"ESP \xe2\x80\x94 Through-wall","Highlight players through walls",false,function(isOn)
         espOn=isOn; if isOn then enableESP() else disableESP() end
     end)
-    makeToggle(vsToggles,"ESP \xe2\x80\x94 Health Bars","Show HP bars above characters",false)
+    makeToggle(vsToggles,"ESP \xe2\x80\x94 Health Bars","Show HP bars above characters",false,function(isOn)
+        task.spawn(function()
+            while isOn and sg.Parent do
+                for _,p in ipairs(Players:GetPlayers()) do
+                    if p~=LocalPlayer and p.Character then
+                        local hrpv=p.Character:FindFirstChild("HumanoidRootPart")
+                        local humv=p.Character:FindFirstChildOfClass("Humanoid")
+                        if hrpv and humv then
+                            local bb=hrpv:FindFirstChild("ESP_BB")
+                            if bb then
+                                local hb=bb:FindFirstChild("HealthBar") or frm({Name="HealthBar",Size=UDim2.new(0,60,0,4),Position=UDim2.new(0.5,-30,0.5,12),BackgroundColor3=C.MUTED,ZIndex=7},bb)
+                                corner(hb,2)
+                                local hf=hb:FindFirstChild("HealthFill") or frm({Name="HealthFill",Size=UDim2.new(humv.Health/humv.MaxHealth,0,1,0),BackgroundColor3=C.GREEN,ZIndex=8},hb)
+                                corner(hf,2)
+                                hf.Size=UDim2.new(math.clamp(humv.Health/humv.MaxHealth,0,1),0,1,0)
+                                hb.Visible=true
+                            end
+                        end
+                    end
+                end
+                task.wait(0.2)
+            end
+            for _,p in ipairs(Players:GetPlayers()) do
+                if p.Character then
+                    local hrpv=p.Character:FindFirstChild("HumanoidRootPart")
+                    if hrpv then
+                        local bb=hrpv:FindFirstChild("ESP_BB")
+                        if bb and bb:FindFirstChild("HealthBar") then bb.HealthBar.Visible=false end
+                    end
+                end
+            end
+        end)
+    end)
     makeToggle(vsToggles,"ESP \xe2\x80\x94 Distance","Show distance label per player",false,function(isOn)
         if isOn then
             task.spawn(function()
@@ -1398,8 +1433,27 @@ local function buildVisualTab()
     makeToggle(vsToggles,"Fullbright","Maximize scene ambient brightness",false,function(isOn)
         if isOn then enableFullbright() else disableFullbright() end
     end)
-    makeToggle(vsToggles,"Nametag Overlay","HVC rank nametags above characters",true)
-    makeToggle(vsToggles,"Baseplate Color Override","Override baseplate colour",false)
+    makeToggle(vsToggles,"Nametag Overlay","HVC rank nametags above characters",true,function(isOn)
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p.Character then
+                local hrpv=p.Character:FindFirstChild("HumanoidRootPart")
+                if hrpv then
+                    local bb=hrpv:FindFirstChild("ESP_BB")
+                    if bb then bb.Enabled = isOn end
+                end
+            end
+        end
+    end)
+    makeToggle(vsToggles,"Baseplate Color Override","Override baseplate colour",false,function(isOn)
+        local bp = workspace:FindFirstChild("Baseplate") or workspace:FindFirstChild("BasePlate")
+        if bp and bp:IsA("BasePart") then
+            if isOn then
+                bp.Color = C.ACCENT
+            else
+                bp.Color = Color3.fromRGB(163, 162, 165) -- Default gray
+            end
+        end
+    end)
     sectionHeader(vsInner,"Visual Tuning")
     local vsTuning=frm({Size=UDim2.new(1,0,0,0),BackgroundTransparency=1,AutomaticSize=Enum.AutomaticSize.Y,ZIndex=4},vsInner); listLayout(vsTuning,6)
     makeSlider(vsTuning,"FOV Circle Radius","Screen-space radius in pixels",50,600,120,function(val)
@@ -1529,7 +1583,7 @@ local function buildTargetTab()
     end
     local tbPingLabel=cornerNote("SERVER: #4412\nPING: —ms",UDim2.new(0,14,0,86),Enum.TextXAlignment.Left)
     local tbCornerTR=cornerNote("TARGET: NONE\nUID: —",UDim2.new(1,-134,0,86),Enum.TextXAlignment.Right)
-    cornerNote("HAVOC v2.1\nINTEL BOARD",UDim2.new(0,14,1,-34),Enum.TextXAlignment.Left)
+    cornerNote("HAVOC v2.4\nINTEL BOARD",UDim2.new(0,14,1,-34),Enum.TextXAlignment.Left)
     local tbPlayersLbl=cornerNote("PLAYERS: —\nSTATUS: LIVE",UDim2.new(1,-134,1,-34),Enum.TextXAlignment.Right)
     task.spawn(function()
         while sg.Parent do
@@ -2082,7 +2136,7 @@ switchTab("home")
 win.BackgroundTransparency=1
 tw(win,{BackgroundTransparency=0},0.3,Enum.EasingStyle.Quint)
 
-print("[Havoc v2.2] Loaded")
+print("[Havoc v2.4] Loaded")
 print("  V — toggle  |  K — palette  |  B — Aimbot ON/OFF  |  F — crosshair TP  |  G — noclip")
 print("  Wired: Speed · Fly · Noclip · Invis · InfJump · AntiAFK · Fullbright")
 print("         Aimbot · ESP · Chams · Tracers · FOV · AntiKB · AntiVoid · AntiRagdoll")
