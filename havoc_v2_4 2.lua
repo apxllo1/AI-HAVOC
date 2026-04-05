@@ -44,6 +44,12 @@ local C = {
     RED       = Color3.fromRGB(220,38,38),
 }
 
+local themeRegistry = {}
+local function reg(obj, prop, key)
+    if not key then return end
+    table.insert(themeRegistry, {obj=obj, prop=prop, key=key})
+end
+
 -- ══════════════════════════════════════════
 --  FEATURE STATE
 -- ══════════════════════════════════════════
@@ -436,8 +442,8 @@ end
 local function enableRejoinOnKick()
     rejoinOnKick = true
     if kickConn then kickConn:Disconnect() end
-    kickConn = LocalPlayer.Kicked:Connect(function()
-        if rejoinOnKick then
+    kickConn = LocalPlayer.AncestryChanged:Connect(function(_, parent)
+        if not parent and rejoinOnKick then
             task.wait(1)
             pcall(function()
                 game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
@@ -510,34 +516,42 @@ local function tw(obj, props, t, style)
         TweenInfo.new(t or 0.18, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         props):Play()
 end
-local function frm(props, parent)
+local function frm(props, parent, themeKey)
     local f = Instance.new("Frame"); f.BorderSizePixel = 0
     for k,v in pairs(props) do f[k] = v end
-    if parent then f.Parent = parent end; return f
+    if parent then f.Parent = parent end
+    if themeKey then reg(f, "BackgroundColor3", themeKey) end
+    return f
 end
-local function lbl(props, parent)
+local function lbl(props, parent, themeKey)
     local l = Instance.new("TextLabel")
     l.BackgroundTransparency = 1; l.BorderSizePixel = 0
     l.Font = Enum.Font.GothamBold
     l.TextXAlignment = Enum.TextXAlignment.Left
     for k,v in pairs(props) do l[k] = v end
-    if parent then l.Parent = parent end; return l
+    if parent then l.Parent = parent end
+    if themeKey then reg(l, "TextColor3", themeKey) end
+    return l
 end
-local function tbtn(props, parent)
+local function tbtn(props, parent, themeKey)
     local b = Instance.new("TextButton")
     b.BorderSizePixel = 0; b.AutoButtonColor = false; b.Font = Enum.Font.GothamBold
     for k,v in pairs(props) do b[k] = v end
     b.MouseEnter:Connect(function() tw(b, {BackgroundTransparency = (props.BackgroundTransparency or 0) * 0.8}) end)
     b.MouseLeave:Connect(function() tw(b, {BackgroundTransparency = props.BackgroundTransparency or 0}) end)
-    if parent then b.Parent = parent end; return b
+    if parent then b.Parent = parent end
+    if themeKey then reg(b, "BackgroundColor3", themeKey) end
+    return b
 end
 local function corner(p, r)
     local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, r or 12); c.Parent = p; return c
 end
-local function stroke(p, col, thick, trans)
+local function stroke(p, col, thick, trans, themeKey)
     local s = Instance.new("UIStroke")
     s.Color = col or C.BORDER; s.Thickness = thick or 1.2; s.Transparency = trans or 0
-    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; s.Parent = p; return s
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; s.Parent = p
+    if themeKey then reg(s, "Color", themeKey) end
+    return s
 end
 local function scroll(parent, size, pos)
     local sc = Instance.new("ScrollingFrame")
@@ -554,23 +568,23 @@ local function listLayout(parent, pad_px)
 end
 local function sectionHeader(parent, text)
     local row = frm({Size=UDim2.new(1,0,0,16), BackgroundTransparency=1}, parent)
-    frm({Size=UDim2.new(0,6,0,6), Position=UDim2.new(0,0,0,5), BackgroundColor3=C.ACCENT}, row)
+    frm({Size=UDim2.new(0,6,0,6), Position=UDim2.new(0,0,0,5), BackgroundColor3=C.ACCENT}, row, "ACCENT")
     lbl({Size=UDim2.new(0,160,1,0), Position=UDim2.new(0,12,0,0), Text=text:upper(),
-        TextColor3=C.SUBTEXT, TextSize=9, Font=Enum.Font.GothamBold}, row)
-    frm({Size=UDim2.new(1,-170,0,1), Position=UDim2.new(0,166,0,7), BackgroundColor3=C.BORDER}, row)
+        TextColor3=C.SUBTEXT, TextSize=9, Font=Enum.Font.GothamBold}, row, "SUBTEXT")
+    frm({Size=UDim2.new(1,-170,0,1), Position=UDim2.new(0,166,0,7), BackgroundColor3=C.BORDER}, row, "BORDER")
     return row
 end
 local function makeToggle(parent, label, subLabel, defaultOn, onToggle)
-    local row = frm({Size=UDim2.new(1,0,0,54), BackgroundColor3=C.SURFACE, ZIndex=6}, parent)
-    corner(row,10); stroke(row,C.BORDER,1.2)
+    local row = frm({Size=UDim2.new(1,0,0,54), BackgroundColor3=C.SURFACE, ZIndex=6}, parent, "SURFACE")
+    corner(row,10); stroke(row,C.BORDER,1.2, 0, "BORDER")
     lbl({Size=UDim2.new(1,-80,0,18), Position=UDim2.new(0,14,0,10), Text=label,
-        TextColor3=C.TEXT, TextSize=12, Font=Enum.Font.GothamBold, ZIndex=7}, row)
+        TextColor3=C.TEXT, TextSize=12, Font=Enum.Font.GothamBold, ZIndex=7}, row, "TEXT")
     lbl({Size=UDim2.new(1,-80,0,14), Position=UDim2.new(0,14,0,28), Text=subLabel,
-        TextColor3=C.SUBTEXT, TextSize=9, Font=Enum.Font.Gotham, ZIndex=7}, row)
+        TextColor3=C.SUBTEXT, TextSize=9, Font=Enum.Font.Gotham, ZIndex=7}, row, "SUBTEXT")
     local isOn = defaultOn or false
     local trackW = 40
     local track = frm({Size=UDim2.new(0,trackW,0,22), Position=UDim2.new(1,-trackW-14,0.5,-11),
-        BackgroundColor3=isOn and C.ACCENT or C.MUTED, ZIndex=7}, row)
+        BackgroundColor3=isOn and C.ACCENT or C.MUTED, ZIndex=7}, row, isOn and "ACCENT" or "MUTED")
     corner(track,11)
     local thumb = frm({Size=UDim2.new(0,16,0,16), Position=UDim2.new(0,isOn and trackW-19 or 3,0.5,-8),
         BackgroundColor3=C.WHITE, ZIndex=8}, track)
@@ -587,20 +601,20 @@ local function makeToggle(parent, label, subLabel, defaultOn, onToggle)
     return row
 end
 local function makeSlider(parent, label, subLabel, minVal, maxVal, defaultVal, onChange)
-    local row = frm({Size=UDim2.new(1,0,0,64), BackgroundColor3=C.SURFACE, ZIndex=6}, parent)
-    corner(row,10); stroke(row,C.BORDER,1.2)
+    local row = frm({Size=UDim2.new(1,0,0,64), BackgroundColor3=C.SURFACE, ZIndex=6}, parent, "SURFACE")
+    corner(row,10); stroke(row,C.BORDER,1.2, 0, "BORDER")
     lbl({Size=UDim2.new(1,-100,0,18), Position=UDim2.new(0,14,0,10), Text=label,
-        TextColor3=C.TEXT, TextSize=12, Font=Enum.Font.GothamBold, ZIndex=7}, row)
+        TextColor3=C.TEXT, TextSize=12, Font=Enum.Font.GothamBold, ZIndex=7}, row, "TEXT")
     lbl({Size=UDim2.new(1,-100,0,14), Position=UDim2.new(0,14,0,28), Text=subLabel,
-        TextColor3=C.SUBTEXT, TextSize=9, Font=Enum.Font.Gotham, ZIndex=7}, row)
+        TextColor3=C.SUBTEXT, TextSize=9, Font=Enum.Font.Gotham, ZIndex=7}, row, "SUBTEXT")
     local valLbl = lbl({Size=UDim2.new(0,60,0,20), Position=UDim2.new(1,-74,0,18),
         Text=tostring(defaultVal), TextColor3=C.ACCENTHI, TextSize=13,
-        Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Right, ZIndex=7}, row)
+        Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Right, ZIndex=7}, row, "ACCENTHI")
     local trackBg = frm({Size=UDim2.new(1,-28,0,5), Position=UDim2.new(0,14,0,48),
-        BackgroundColor3=C.MUTED, ZIndex=7}, row)
+        BackgroundColor3=C.MUTED, ZIndex=7}, row, "MUTED")
     corner(trackBg,2.5)
     local pct = (defaultVal - minVal) / (maxVal - minVal)
-    local fill = frm({Size=UDim2.new(pct,0,1,0), BackgroundColor3=C.ACCENT, ZIndex=8}, trackBg); corner(fill,2.5)
+    local fill = frm({Size=UDim2.new(pct,0,1,0), BackgroundColor3=C.ACCENT, ZIndex=8}, trackBg, "ACCENT"); corner(fill,2.5)
     local handle = frm({Size=UDim2.new(0,14,0,14), Position=UDim2.new(pct,0,0.5,-7),
         BackgroundColor3=C.WHITE, ZIndex=9}, trackBg); corner(handle,7)
     local draggingSlider = false
@@ -624,17 +638,67 @@ local function makeSlider(parent, label, subLabel, minVal, maxVal, defaultVal, o
     return row
 end
 local function cardHeader(card, title, dotColor)
-    local head = frm({Size=UDim2.new(1,0,0,34), BackgroundColor3=C.TOPBAR, ZIndex=5}, card)
+    local head = frm({Size=UDim2.new(1,0,0,34), BackgroundColor3=C.TOPBAR, ZIndex=5}, card, "TOPBAR")
     corner(head,10)
-    frm({Size=UDim2.new(1,0,0,10), Position=UDim2.new(0,0,1,-10), BackgroundColor3=C.TOPBAR, ZIndex=5}, head)
-    frm({Size=UDim2.new(1,0,0,1),  Position=UDim2.new(0,0,1,-1),  BackgroundColor3=C.BORDER, ZIndex=5}, head)
+    frm({Size=UDim2.new(1,0,0,10), Position=UDim2.new(0,0,1,-10), BackgroundColor3=C.TOPBAR, ZIndex=5}, head, "TOPBAR")
+    frm({Size=UDim2.new(1,0,0,1),  Position=UDim2.new(0,0,1,-1),  BackgroundColor3=C.BORDER, ZIndex=5}, head, "BORDER")
     local dot = frm({Size=UDim2.new(0,6,0,6), Position=UDim2.new(0,12,0.5,-3),
-        BackgroundColor3=dotColor or C.ACCENT, ZIndex=6}, head)
+        BackgroundColor3=dotColor or C.ACCENT, ZIndex=6}, head, dotColor == nil and "ACCENT" or nil)
     corner(dot,3)
     lbl({Size=UDim2.new(1,-20,1,0), Position=UDim2.new(0,22,0,0), Text=title,
-        TextColor3=C.TEXT, TextSize=11, Font=Enum.Font.GothamBold, ZIndex=6}, head)
+        TextColor3=C.TEXT, TextSize=11, Font=Enum.Font.GothamBold, ZIndex=6}, head, "TEXT")
     return head
 end
+
+local function RefreshTheme()
+    for _, r in ipairs(themeRegistry) do
+        if r.obj and r.obj.Parent then
+            pcall(function()
+                r.obj[r.prop] = C[r.key]
+            end)
+        end
+    end
+end
+
+local function ApplyTheme(theme)
+    for k, v in pairs(theme) do
+        C[k] = v
+    end
+    RefreshTheme()
+end
+
+local Themes = {
+    ["Havoc (Default)"] = {
+        BG        = Color3.fromRGB(6,5,8),
+        SURFACE   = Color3.fromRGB(10,9,13),
+        CARD      = Color3.fromRGB(14,13,18),
+        CARD2     = Color3.fromRGB(20,18,25),
+        TOPBAR    = Color3.fromRGB(8,7,11),
+        ACCENT    = Color3.fromRGB(230,30,30),
+        ACCENTHI  = Color3.fromRGB(255,60,60),
+        ACCENTDIM = Color3.fromRGB(45,12,12),
+        BORDER    = Color3.fromRGB(24,22,30),
+        BORDER2   = Color3.fromRGB(36,34,45),
+        TEXT      = Color3.fromRGB(240,238,245),
+        SUBTEXT   = Color3.fromRGB(120,115,135),
+        MUTED     = Color3.fromRGB(28,26,34),
+    },
+    ["Bloodline"] = {
+        BG        = Color3.fromRGB(0, 0, 0),
+        SURFACE   = Color3.fromRGB(15, 0, 0),
+        CARD      = Color3.fromRGB(25, 0, 0),
+        CARD2     = Color3.fromRGB(40, 0, 0),
+        TOPBAR    = Color3.fromRGB(10, 0, 0),
+        ACCENT    = Color3.fromRGB(255, 0, 0),
+        ACCENTHI  = Color3.fromRGB(255, 255, 255),
+        ACCENTDIM = Color3.fromRGB(60, 0, 0),
+        BORDER    = Color3.fromRGB(50, 0, 0),
+        BORDER2   = Color3.fromRGB(80, 0, 0),
+        TEXT      = Color3.fromRGB(255, 255, 255),
+        SUBTEXT   = Color3.fromRGB(200, 200, 200),
+        MUTED     = Color3.fromRGB(30, 0, 0),
+    }
+}
 
 -- ══════════════════════════════════════════
 --  ROOT GUI
@@ -661,42 +725,43 @@ win.BackgroundColor3 = C.BG
 win.BorderSizePixel = 0
 win.ZIndex = 1
 win.Parent = sg
+reg(win, "BackgroundColor3", "BG")
 
-corner(win, 16); stroke(win, C.BORDER2, 1.2)
+corner(win, 16); stroke(win, C.BORDER2, 1.2, 0, "BORDER2")
 
 -- Ambient Background Effects
-local bgGlow = frm({Size=UDim2.new(1.4,0,1.4,0), Position=UDim2.new(-0.2,0,-0.2,0), BackgroundColor3=C.ACCENT, BackgroundTransparency=0.96, ZIndex=2}, win)
+local bgGlow = frm({Size=UDim2.new(1.4,0,1.4,0), Position=UDim2.new(-0.2,0,-0.2,0), BackgroundColor3=C.ACCENT, BackgroundTransparency=0.96, ZIndex=2}, win, "ACCENT")
 corner(bgGlow, 300)
-local bgGlow2 = frm({Size=UDim2.new(0.8,0,0.8,0), Position=UDim2.new(0.4,0,0.4,0), BackgroundColor3=C.ACCENT, BackgroundTransparency=0.97, ZIndex=2}, win)
+local bgGlow2 = frm({Size=UDim2.new(0.8,0,0.8,0), Position=UDim2.new(0.4,0,0.4,0), BackgroundColor3=C.ACCENT, BackgroundTransparency=0.97, ZIndex=2}, win, "ACCENT")
 corner(bgGlow2, 200)
 
-frm({Size=UDim2.new(1,0,0,80), BackgroundColor3=C.ACCENT, BackgroundTransparency=0.94, ZIndex=2}, win)
+frm({Size=UDim2.new(1,0,0,80), BackgroundColor3=C.ACCENT, BackgroundTransparency=0.94, ZIndex=2}, win, "ACCENT")
 
 local dragging, dragStart, startPos = false, nil, nil
 
 -- ══════════════════════════════════════════
 --  SIDEBAR
 -- ══════════════════════════════════════════
-local sidebar = frm({Size=UDim2.new(0,210,1,0), BackgroundColor3=C.SURFACE, ZIndex=3}, win)
+local sidebar = frm({Size=UDim2.new(0,210,1,0), BackgroundColor3=C.SURFACE, ZIndex=3}, win, "SURFACE")
 frm({Size=UDim2.new(0,1,1,0), Position=UDim2.new(1,-1,0,0),
-    BackgroundColor3=C.ACCENT, BackgroundTransparency=0.7, ZIndex=4}, sidebar)
-stroke(sidebar,C.BORDER,1)
+    BackgroundColor3=C.ACCENT, BackgroundTransparency=0.7, ZIndex=4}, sidebar, "ACCENT")
+stroke(sidebar,C.BORDER,1, 0, "BORDER")
 
 local logoArea = frm({Size=UDim2.new(1,0,0,90), BackgroundTransparency=1, ZIndex=4}, sidebar)
 frm({Size=UDim2.new(1,-24,0,1), Position=UDim2.new(0,12,1,-1), BackgroundColor3=C.BORDER, ZIndex=4}, logoArea)
 local logoPill = frm({Size=UDim2.new(0,42,0,42), Position=UDim2.new(0,16,0,20),
-    BackgroundColor3=C.ACCENT, ZIndex=5}, logoArea)
+    BackgroundColor3=C.ACCENT, ZIndex=5}, logoArea, "ACCENT")
 corner(logoPill,12)
-local lgs = Instance.new("UIStroke"); lgs.Color=C.ACCENTHI; lgs.Thickness=1.8; lgs.Transparency=0.25; lgs.Parent=logoPill
+local lgs = stroke(logoPill, C.ACCENTHI, 1.8, 0.25, "ACCENTHI")
 lbl({Size=UDim2.new(1,0,1,0), Text="⚔", TextColor3=C.WHITE, TextSize=22,
-    TextXAlignment=Enum.TextXAlignment.Center, ZIndex=6}, logoPill)
+    TextXAlignment=Enum.TextXAlignment.Center, ZIndex=6}, logoPill, "WHITE")
 lbl({Size=UDim2.new(0,120,0,22), Position=UDim2.new(0,68,0,22), Text="HAVOC",
-    TextColor3=C.TEXT, TextSize=18, Font=Enum.Font.GothamBold, ZIndex=5}, logoArea)
+    TextColor3=C.TEXT, TextSize=18, Font=Enum.Font.GothamBold, ZIndex=5}, logoArea, "TEXT")
 lbl({Size=UDim2.new(0,120,0,14), Position=UDim2.new(0,68,0,42), Text="Admin Intelligence",
-    TextColor3=C.SUBTEXT, TextSize=10, Font=Enum.Font.Gotham, ZIndex=5}, logoArea)
+    TextColor3=C.SUBTEXT, TextSize=10, Font=Enum.Font.Gotham, ZIndex=5}, logoArea, "SUBTEXT")
 local vBadge = frm({Size=UDim2.new(0,140,0,18), Position=UDim2.new(0,16,0,62),
-    BackgroundColor3=C.ACCENTDIM, ZIndex=5, BackgroundTransparency=0.8}, logoArea)
-corner(vBadge,9); stroke(vBadge,C.ACCENT,1,0.6)
+    BackgroundColor3=C.ACCENTDIM, ZIndex=5, BackgroundTransparency=0.8}, logoArea, "ACCENTDIM")
+corner(vBadge,9); stroke(vBadge,C.ACCENT,1,0.6, "ACCENT")
 lbl({Size=UDim2.new(1,0,1,0), Text="SYSTEM VERSION 2.4", TextColor3=C.ACCENTHI,
     TextSize=8, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Center, ZIndex=6}, vBadge)
 
@@ -712,6 +777,8 @@ local NAV_ITEMS = {
     {label="UTILITY", isSection=true},
     {icon="🛡",  name="Protect",   tab="protect"},
     {icon="⚙",  name="Misc",      tab="misc"},
+    {icon="📜",  name="Scripts",   tab="scripts"},
+    {icon="🎨",  name="Themes",    tab="themes"},
     {label="INFO", isSection=true},
     {icon="📋",  name="Changelog", tab="changelog"},
 }
@@ -727,18 +794,18 @@ local currentTab = "home"
 local function buildNavItem(icon, name, tabName)
     local isActive = (tabName == currentTab)
     local row = frm({Size=UDim2.new(1,0,0,38), BackgroundColor3=C.ACCENTDIM,
-        BackgroundTransparency=isActive and 0.85 or 1, ZIndex=5}, navInner)
+        BackgroundTransparency=isActive and 0.85 or 1, ZIndex=5}, navInner, isActive and "ACCENTDIM" or nil)
     corner(row,10)
-    local rowStroke = stroke(row, C.ACCENT, 1.2, isActive and 0.6 or 1)
+    local rowStroke = stroke(row, C.ACCENT, 1.2, isActive and 0.6 or 1, "ACCENT")
     local bar = frm({Size=UDim2.new(0,4,0,18), Position=UDim2.new(0,0,0.5,-9),
-        BackgroundColor3=C.ACCENT, ZIndex=7, Visible=isActive}, row)
+        BackgroundColor3=C.ACCENT, ZIndex=7, Visible=isActive}, row, "ACCENT")
     corner(bar,2)
     local iconLbl = lbl({Size=UDim2.new(0,24,1,0), Position=UDim2.new(0,14,0,0),
         Text=icon, TextColor3=isActive and C.TEXT or C.SUBTEXT,
-        TextSize=14, TextXAlignment=Enum.TextXAlignment.Center, ZIndex=6}, row)
+        TextSize=14, TextXAlignment=Enum.TextXAlignment.Center, ZIndex=6}, row, isActive and "TEXT" or "SUBTEXT")
     local nameLbl = lbl({Size=UDim2.new(1,-42,1,0), Position=UDim2.new(0,42,0,0),
         Text=name, TextColor3=isActive and C.TEXT or C.SUBTEXT,
-        TextSize=12, Font=Enum.Font.GothamBold, ZIndex=6}, row)
+        TextSize=12, Font=Enum.Font.GothamBold, ZIndex=6}, row, isActive and "TEXT" or "SUBTEXT")
     local cl = tbtn({Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, Text="", ZIndex=7}, row)
     cl.MouseEnter:Connect(function()
         if currentTab ~= tabName then
@@ -788,14 +855,14 @@ lbl({Size=UDim2.new(1,-36,0,11), Position=UDim2.new(0,34,0,19),
 local mainArea = frm({Size=UDim2.new(1,-210,1,0), Position=UDim2.new(0,210,0,0),
     BackgroundTransparency=1, ClipsDescendants=true, ZIndex=3}, win)
 
-local topbar = frm({Size=UDim2.new(1,0,0,44), BackgroundColor3=C.TOPBAR, ZIndex=4}, mainArea)
-frm({Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,1,-1), BackgroundColor3=C.BORDER, ZIndex=4}, topbar)
+local topbar = frm({Size=UDim2.new(1,0,0,44), BackgroundColor3=C.TOPBAR, ZIndex=4}, mainArea, "TOPBAR")
+frm({Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,1,-1), BackgroundColor3=C.BORDER, ZIndex=4}, topbar, "BORDER")
 local breadcrumb = lbl({Size=UDim2.new(0,300,1,0), Position=UDim2.new(0,14,0,0),
-    Text="havoc  /  home", TextColor3=C.SUBTEXT, TextSize=10, Font=Enum.Font.GothamBold, ZIndex=5}, topbar)
+    Text="havoc  /  home", TextColor3=C.SUBTEXT, TextSize=10, Font=Enum.Font.GothamBold, ZIndex=5}, topbar, "SUBTEXT")
 local liveDot = frm({Size=UDim2.new(0,7,0,7), Position=UDim2.new(1,-200,0.5,-3),
-    BackgroundColor3=C.GREEN, ZIndex=5}, topbar); corner(liveDot,4)
+    BackgroundColor3=C.GREEN, ZIndex=5}, topbar, "GREEN"); corner(liveDot,4)
 lbl({Size=UDim2.new(0,40,1,0), Position=UDim2.new(1,-190,0,0), Text="LIVE",
-    TextColor3=C.GREEN, TextSize=9, Font=Enum.Font.GothamBold, ZIndex=5}, topbar)
+    TextColor3=C.GREEN, TextSize=9, Font=Enum.Font.GothamBold, ZIndex=5}, topbar, "GREEN")
 task.spawn(function()
     while sg.Parent do
         tw(liveDot,{BackgroundTransparency=0.5},1); task.wait(1)
@@ -832,13 +899,13 @@ closeBtn.MouseLeave:Connect(function() tw(closeBtn,{BackgroundTransparency=1}); 
 closeBtn.MouseButton1Click:Connect(function() sg.Enabled=false end)
 
 local tickerBar = frm({Size=UDim2.new(1,0,0,20), Position=UDim2.new(0,0,0,44),
-    BackgroundColor3=C.SURFACE, ZIndex=4}, mainArea)
-frm({Size=UDim2.new(1,0,0,1), BackgroundColor3=C.BORDER, ZIndex=4}, tickerBar)
-frm({Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,1,-1), BackgroundColor3=C.BORDER, ZIndex=4}, tickerBar)
-local TICKER = "  HAVOC v2.2  //  AIMBOT BUILD  ▸  Speed · Fly · Noclip · Invis · Aimbot · ESP · Chams · Tracers · FOV · AntiVoid · AntiKB  ▸  "
+    BackgroundColor3=C.SURFACE, ZIndex=4}, mainArea, "SURFACE")
+frm({Size=UDim2.new(1,0,0,1), BackgroundColor3=C.BORDER, ZIndex=4}, tickerBar, "BORDER")
+frm({Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,1,-1), BackgroundColor3=C.BORDER, ZIndex=4}, tickerBar, "BORDER")
+local TICKER = "  HAVOC v2.4  //  AIMBOT BUILD  ▸  Speed · Fly · Noclip · Invis · Aimbot · ESP · Chams · Tracers · FOV · AntiVoid · AntiKB  ▸  "
 local tickerLbl = lbl({Size=UDim2.new(0,2000,1,0), Position=UDim2.new(0,700,0,0),
     Text=TICKER..TICKER, TextColor3=C.SUBTEXT, TextSize=9,
-    Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=5}, tickerBar)
+    Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, ZIndex=5}, tickerBar, "SUBTEXT")
 task.spawn(function()
     while sg.Parent do
         local sx = tickerLbl.Position.X.Offset
@@ -2025,6 +2092,84 @@ end
 buildChangelogTab()
 
 -- ══════════════════════════════════════════
+--  TAB: SCRIPTS
+-- ══════════════════════════════════════════
+local function buildScriptsTab()
+    local scInner = newTabPage("scripts")
+    sectionHeader(scInner, "External Scripts")
+
+    local scripts = {
+        {name="Solaris", url="https://solarishub.dev/script.lua", desc="A collection of your favorite scripts.", footer="solarishub.dev"},
+        {name="V.G Hub", url="https://raw.githubusercontent.com/1201for/V.G-Hub/main/V.Ghub", desc="Featuring over 100 games.", footer="github.com/1201for"},
+        {name="CMD-X", url="https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source", desc="Powerful administration commands.", footer="github.com/CMD-X"},
+        {name="Infinite Yield", url="https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", desc="Universal admin script.", footer="github.com/EdgeIY"},
+        {name="Dex Explorer", url="https://pastebin.com/raw/mMbsHWiQ", desc="In-game object browser.", footer="github.com/LorekeeperZinnia"},
+        {name="Unnamed ESP", url="https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/UnnamedESP.lua", desc="Highly customizable ESP.", footer="github.com/ic3w0lf22"},
+        {name="EvoV2", url="https://projectevo.xyz/script/loader.lua", desc="Reliable cheats for top shooter games.", footer="projectevo.xyz"}
+    }
+
+    local list = frm({Size=UDim2.new(1,0,0,0), BackgroundTransparency=1, AutomaticSize=Enum.AutomaticSize.Y, ZIndex=4}, scInner)
+    listLayout(list, 8)
+
+    for _, s in ipairs(scripts) do
+        local card = frm({Size=UDim2.new(1,0,0,74), BackgroundColor3=C.CARD, ZIndex=5}, list, "CARD")
+        corner(card, 10); stroke(card, C.BORDER, 1, 0, "BORDER")
+
+        lbl({Size=UDim2.new(1,-110,0,18), Position=UDim2.new(0,14,0,12), Text=s.name, TextColor3=C.WHITE, TextSize=14, Font=Enum.Font.GothamBold, ZIndex=6}, card, "WHITE")
+        lbl({Size=UDim2.new(1,-110,0,26), Position=UDim2.new(0,14,0,32), Text=s.desc, TextColor3=C.SUBTEXT, TextSize=9, Font=Enum.Font.Gotham, TextWrapped=true, ZIndex=6}, card, "SUBTEXT")
+        lbl({Size=UDim2.new(1,-110,0,12), Position=UDim2.new(0,14,0,56), Text=s.footer, TextColor3=C.ACCENTHI, TextSize=8, Font=Enum.Font.GothamBold, ZIndex=6}, card, "ACCENTHI")
+
+        local loadBtn = tbtn({Size=UDim2.new(0,80,0,34), Position=UDim2.new(1,-94,0.5,-17), BackgroundColor3=C.ACCENTDIM, TextColor3=C.ACCENTHI, TextSize=10, Text="Execute", Font=Enum.Font.GothamBold, ZIndex=7}, card, "ACCENTDIM")
+        corner(loadBtn, 8); stroke(loadBtn, C.ACCENT, 1, 0.5, "ACCENT")
+
+        loadBtn.MouseEnter:Connect(function() tw(loadBtn, {BackgroundColor3=C.ACCENT, TextColor3=C.WHITE}) end)
+        loadBtn.MouseLeave:Connect(function() tw(loadBtn, {BackgroundColor3=C.ACCENTDIM, TextColor3=C.ACCENTHI}) end)
+
+        loadBtn.MouseButton1Click:Connect(function()
+            local success, content = pcall(function() return game:HttpGet(s.url) end)
+            if success then
+                local func, err = loadstring(content)
+                if func then task.spawn(func) else warn("Failed to load: "..tostring(err)) end
+            else warn("Failed to fetch script from URL") end
+        end)
+    end
+
+    frm({Size=UDim2.new(1,0,0,16), BackgroundTransparency=1, ZIndex=4}, scInner)
+end
+buildScriptsTab()
+
+-- ══════════════════════════════════════════
+--  TAB: THEMES
+-- ══════════════════════════════════════════
+local function buildThemesTab()
+    local thInner = newTabPage("themes")
+    sectionHeader(thInner, "UI Themes")
+
+    local list = frm({Size=UDim2.new(1,0,0,0), BackgroundTransparency=1, AutomaticSize=Enum.AutomaticSize.Y, ZIndex=4}, thInner)
+    listLayout(list, 8)
+
+    for name, palette in pairs(Themes) do
+        local card = frm({Size=UDim2.new(1,0,0,60), BackgroundColor3=C.CARD, ZIndex=5}, list, "CARD")
+        corner(card, 10); stroke(card, C.BORDER, 1, 0, "BORDER")
+
+        lbl({Size=UDim2.new(1,-120,1,0), Position=UDim2.new(0,14,0,0), Text=name, TextColor3=C.TEXT, TextSize=14, Font=Enum.Font.GothamBold, ZIndex=6}, card, "TEXT")
+
+        local applyBtn = tbtn({Size=UDim2.new(0,80,0,30), Position=UDim2.new(1,-94,0.5,-15), BackgroundColor3=C.ACCENTDIM, TextColor3=C.ACCENTHI, TextSize=10, Text="Apply", Font=Enum.Font.GothamBold, ZIndex=7}, card, "ACCENTDIM")
+        corner(applyBtn, 8); stroke(applyBtn, C.ACCENT, 1, 0.5, "ACCENT")
+
+        applyBtn.MouseEnter:Connect(function() tw(applyBtn, {BackgroundColor3=C.ACCENT, TextColor3=C.WHITE}) end)
+        applyBtn.MouseLeave:Connect(function() tw(applyBtn, {BackgroundColor3=C.ACCENTDIM, TextColor3=C.ACCENTHI}) end)
+
+        applyBtn.MouseButton1Click:Connect(function()
+            ApplyTheme(palette)
+        end)
+    end
+
+    frm({Size=UDim2.new(1,0,0,16), BackgroundTransparency=1, ZIndex=4}, thInner)
+end
+buildThemesTab()
+
+-- ══════════════════════════════════════════
 --  COMMAND PALETTE
 -- ══════════════════════════════════════════
 local cmdOverlay=frm({Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=0.5,Visible=false,ZIndex=20},win)
@@ -2105,7 +2250,7 @@ switchTab("home")
 win.BackgroundTransparency=1
 tw(win,{BackgroundTransparency=0},0.3,Enum.EasingStyle.Quint)
 
-print("[Havoc v2.2] Loaded")
+print("[Havoc v2.4] Loaded")
 print("  V — toggle  |  K — palette  |  B — Aimbot ON/OFF  |  F — crosshair TP  |  G — noclip")
 print("  Wired: Speed · Fly · Noclip · Invis · InfJump · AntiAFK · Fullbright")
 print("         Aimbot · ESP · Chams · Tracers · FOV · AntiKB · AntiVoid · AntiRagdoll")
