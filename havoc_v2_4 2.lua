@@ -1526,8 +1526,8 @@ local function buildTargetTab()
     local bc=Instance.new("UICorner"); bc.CornerRadius=UDim.new(0,14); bc.Parent=board
     stroke(board,C.BORDER,1.2)
 
-    local listPane = frm({Size=UDim2.new(0.35,0,1,0), BackgroundColor3=C.SURFACE, ZIndex=6}, board)
-    stroke(listPane, C.BORDER, 1.2)
+    local listPane = frm({Size=UDim2.new(0.35,0,1,0), BackgroundColor3=C.SURFACE, ZIndex=6}, board, "SURFACE")
+    stroke(listPane, C.BORDER, 1.2, 0, "BORDER")
 
     local detailPane = frm({Size=UDim2.new(0.65,0,1,0), Position=UDim2.new(0.35,0,0,0), BackgroundTransparency=1, ZIndex=6}, board)
 
